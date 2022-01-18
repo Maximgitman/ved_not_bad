@@ -1,0 +1,6 @@
+# Default ignored files
+/static/data/ved_all_bp.csv
+/static/data/ved_bp_processing_time.csv
+/static/data/ved_bp_skills.csv
+/shelf/
+/workspace.xml
