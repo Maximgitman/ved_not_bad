@@ -3,6 +3,8 @@ import pandas as pd
 from waitress import serve
 import os
 
+from preprocessing import preprocess_data
+
 UPLOAD_FOLDER = "static/uploads/"
 
 app = Flask(__name__)
@@ -52,6 +54,9 @@ def get_ved():
         # Preprocessing time_process
         # Preprocessing skills
         # Concatenate pd.concat([all_bp, time_process, skills])
+        prepared_data, bp_id_list, ved_list = preprocess_data(all_bp.copy(),
+                                                              skills.copy(),
+                                                              time_process.copy())
         # Predict
         # Making Json into variable --> results
 
