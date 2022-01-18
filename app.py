@@ -3,6 +3,7 @@ import pandas as pd
 from waitress import serve
 import os
 
+from prediction import predict
 from preprocessing import preprocess_data
 
 UPLOAD_FOLDER = "static/uploads/"
@@ -58,6 +59,8 @@ def get_ved():
                                                               skills.copy(),
                                                               time_process.copy())
         # Predict
+        results = predict(prepared_data, bp_id_list, ved_list)
+
         # Making Json into variable --> results
 
         return jsonify(results)
