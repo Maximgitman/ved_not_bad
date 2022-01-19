@@ -31,7 +31,7 @@ class NNModel(nn.Module):
         return out
 
 
-def predict(data, bp_id_list, ved_list):
+def predict(data: object, bp_id_list: object, ved_list: object) -> object:
     model = NNModel(input_size=273).to(device)
     model.load_state_dict(torch.load(weights_path))
     model.eval()

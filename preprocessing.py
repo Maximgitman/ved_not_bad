@@ -228,8 +228,6 @@ def preprocess_data(bp_data, skills_data, time_data):
 
     return prepared_data, bp_id_list, ved_list
 
-# 5. Predict --> model weights storage into static folder TODO
-
 # 6. Making Json into variable --> results TODO
 
 

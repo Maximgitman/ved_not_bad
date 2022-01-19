@@ -1,14 +1,16 @@
 from flask import Flask, request, jsonify, render_template
 import pandas as pd
-from waitress import serve
 import os
-
+from waitress import serve
 from prediction import predict
 from preprocessing import preprocess_data
 
 UPLOAD_FOLDER = "static/uploads/"
+data_path = "static/data"
 
 app = Flask(__name__)
+
+headers = {'Content-Type': 'application/json'}
 
 # Ensure templates are auto-reloaded
 app.secret_key = "not-so-secret"
@@ -26,46 +28,31 @@ def after_request(response):
     return response
 
 
-@app.route("/")
-def index():
-    # Index pages
-    exctracted_txt = "Will be add some results"
-    return render_template("index.html",
-                           exctracted_txt=exctracted_txt)
-
-
-@app.route("/get_ved", methods=["POST"])
+@app.route("/", methods=["GET", "POST"])
 def get_ved():
     if request.method == "POST":
-        # BLock reading and getting data
-        # Getting first table from request (json)
         data = request.get_json(force=True)
         all_bp = pd.DataFrame(data)
+        skills_path = os.path.join(data_path, 'ved_bp_skills_3.xlsx')
+        time_path = os.path.join(data_path, 'ved_bp_processing_time.csv')
 
-        # Getting second table with time
-        time_process = pd.read_csv("/static/data/ved_bp_processing_time.csv")
+        skills = pd.read_excel(skills_path, sheet_name=None, header=[1])
+        time = pd.read_csv(time_path)
 
-        # Getting third table with skills
-        skills = pd.read_csv("/static/data/ved_bp_skills.csv")
-
-        if not all_bp or time_process or skills:  # If there is no name, showing erros page
-            return render_template("error.html", message="Missing data, try again")
-
-        # Preprocessing all_bp
-        # Preprocessing time_process
-        # Preprocessing skills
-        # Concatenate pd.concat([all_bp, time_process, skills])
+        print(all_bp.keys(), type(all_bp))
+        print(time.keys(), type(time))
+        print(skills.keys(), type(skills))
         prepared_data, bp_id_list, ved_list = preprocess_data(all_bp.copy(),
                                                               skills.copy(),
-                                                              time_process.copy())
+                                                              time.copy())
         # Predict
         results = predict(prepared_data, bp_id_list, ved_list)
 
-        # Making Json into variable --> results
-
         return jsonify(results)
+    else:
+        return render_template("index.html")
 
 
 if __name__ == "__main__":
     # app.run(debug=True)
-    serve(app, host="0.0.0.0", port=5000)
+    serve(app, host="0.0.0.0", port=8080)
