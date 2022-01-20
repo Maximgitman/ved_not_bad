@@ -39,9 +39,6 @@ def get_ved():
         skills = pd.read_excel(skills_path, sheet_name=None, header=[1])
         time = pd.read_csv(time_path)
 
-        print(all_bp.keys(), type(all_bp))
-        print(time.keys(), type(time))
-        print(skills.keys(), type(skills))
         prepared_data, bp_id_list, ved_list = preprocess_data(all_bp.copy(),
                                                               skills.copy(),
                                                               time.copy())
