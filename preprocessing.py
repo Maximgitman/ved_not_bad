@@ -19,11 +19,40 @@ with open(os.path.join(data_path, 'position_dict.json'), 'r') as f:
 with open(os.path.join(data_path, 'manager_dict.json'), 'r') as f:
     manager_dict = json.load(f)
 
+with open(os.path.join(data_path, 'week_dict.json'), 'r') as f:
+    week_dict = json.load(f)
 
-# 1. Preprocessing all_bp (maybe will it be Json)
+month_skills_columns = ['ВЭД', 'Звонки', 'Звонки норма', 'Обработанные заявки',
+                        'Норма 88%', 'Обработка не позднее 48 часов', 'Норма 85%',
+                        'Полнота сбора', 'Норма 95%', 'Встречи', 'Встречи норма']
+
+quarter_skills_columns = ['ВЭД', 'Звонки (3 мес)', 'Звонки норма (3 мес)', 'Обработанные заявки (3 мес)',
+                          'Норма 88% (3 мес)', 'Обработка не позднее 48 часов (3 мес)',
+                          'Норма 85% (3 мес)', 'Полнота сбора (3 мес)', 'Норма 95% (3 мес)',
+                          'Встречи (3 мес)', 'Встречи норма (3 мес)']
+
+skills_final_columns = ['ВЭД', 'Звонки', 'Обработанные заявки', 'Норма 88%',
+                        'Обработка не позднее 48 часов', 'Норма 85%', 'Полнота сбора',
+                        'Норма 95%', 'Встречи', 'Звонки (3 мес)', 'Звонки / Норма',
+                        'Обработанные заявки (3 мес)', 'Норма 88% (3 мес)',
+                        'Обработанные заявки / Норма', 'Обработка не позднее 48 часов (3 мес)',
+                        'Норма 85% (3 мес)', '48 часов / Норма', 'Полнота сбора (3 мес)',
+                        'Норма 95% (3 мес)', 'Полнота сбора / Норма', 'Встречи (3 мес)',
+                        'Встречи / Норма']
 
 
 def preprocess_bp(bp_data: pd.DataFrame) -> pd.DataFrame:
+    """
+    Функция принимает на вход DataFrame заказов со столбцами:
+    'Бизнес процесс', 'Группа видов номенклатуры', 'Партнер клиента', 'Менеджер'
+    Возвращает преобразованный DataFrame со столбцами:
+    'Бизнес процесс', 'Дата', 'Неделя', 'Партнер клиента', 'Менеджер', 'Группа видов номенклатуры'
+
+    :param bp_data: pd.DataFrame
+
+    :return: pd.DataFrame
+    """
+
     bp_data['Бизнес процесс'] = bp_data['Бизнес процесс'].astype('str')
 
     # Заполнение пропущенных значений в номенклатурах
@@ -37,7 +66,9 @@ def preprocess_bp(bp_data: pd.DataFrame) -> pd.DataFrame:
         order_id.append(process[15:24])
         order_date.append(process[-19:])
     bp_data['Бизнес процесс'] = order_id
-    bp_data['Дата БП'] = order_date
+    bp_data['Дата'] = order_date
+    bp_data['Дата'] = pd.to_datetime(bp_data['Дата'])
+    bp_data['Неделя'] = bp_data['Дата'].dt.isocalendar().week
 
     # Объединение номенклатур по БП
     bp_unique = bp_data['Бизнес процесс'].unique()
@@ -52,131 +83,57 @@ def preprocess_bp(bp_data: pd.DataFrame) -> pd.DataFrame:
     bp_data_unique = pd.DataFrame(unique_bp, columns=bp_data.columns)
     bp_data_unique.reset_index(drop=True, inplace=True)
 
-    # TODO убрать заглушки
-    bp_data_unique['Партнер клиента'] = 'Неизвестен'
-    bp_data_unique['Менеджер'] = 'Неизвестен'
-
-    columns = ['Бизнес процесс', 'Дата БП', 'Партнер клиента', 'Менеджер', 'Группа видов номенклатуры']
+    columns = ['Бизнес процесс', 'Дата', 'Неделя', 'Партнер клиента', 'Менеджер', 'Группа видов номенклатуры']
     bp_data_unique = bp_data_unique.reindex(columns=columns)
 
     return bp_data_unique
 
 
-# 2. Preprocessing time_process --> add to folder static/data
+def preprocess_skills(month_kpi_skills: pd.DataFrame, quarter_kpi_skills: pd.DataFrame) -> pd.DataFrame:
+    """
+    Функция принимает на вход два DataFrame:
+    - с данными по KPI сотрудников ВЭД за последний месяц
+    - с данными по KPI сотрудников ВЭД за последний квартал
+    Возвращает объединенный DataFrame по двум таблицам с дополнительными признаками отношений выполненных работ
+    к нормам сотрудников
 
+    :param month_kpi_skills: pd.DataFrame
+    :param quarter_kpi_skills: pd.DataFrame
 
-def preprocess_time(time: pd.DataFrame) -> pd.DataFrame:
-    time['Время выполнения в секундах'] = time['Время выполнения в секундах'].astype(str).str.replace(',', '').astype(
-        'float')
-
-    order_id = []
-    order_date = []
-    for i in range(len(time['Бизнес-процесс'])):
-        process = time['Бизнес-процесс'][i]
-        order_id.append(process[15:24])
-        month = process[31:38]
-        order_date.append(month)
-    time['Бизнес-процесс'] = order_id
-    time['Дата'] = order_date
-
-    # Рассчитаем месячную медиану по времени выполнения заказа по каждому ВЭД
-    median_time = time.groupby(['ВЭД', 'Дата'], as_index=False).median()
-    median_time.rename(columns={'Время выполнения в секундах': 'Медиана времени выполнения (сек)'}, inplace=True)
-
-    return median_time
-
-
-# 3. Preprocessing skills --> add to folder static/data
-
-
-skills_columns = ['N', 'ВЭД', 'Звонки', 'Звонки норма',
-                  'Обработанные заявки', 'Норма 88%',
-                  'Обработка не позднее 48 часов', 'Норма 85%',
-                  'Полнота сбора', 'Норма 95%',
-                  'Встречи', 'Встречи норма', 'Дата']
-
-columns_to_prepare = ['Звонки', 'Звонки норма', 'Обработанные заявки', 'Норма 88%',
-                      'Обработка не позднее 48 часов', 'Норма 85%', 'Полнота сбора',
-                      'Норма 95%', 'Встречи', 'Встречи норма']
-
-columns_to_check = ['Звонки', 'Обработанные заявки', 'Норма 88%',
-                    'Обработка не позднее 48 часов', 'Норма 85%',
-                    'Полнота сбора', 'Норма 95%', 'Встречи']
-
-skills_final_columns = ['ВЭД', 'Дата', 'Звонки', 'Обработанные заявки', 'Норма 88%',
-                        'Обработка не позднее 48 часов', 'Норма 85%', 'Полнота сбора',
-                        'Норма 95%', 'Встречи', 'Звонки (3 мес)',
-                        'Звонки / Норма', 'Обработанные заявки (3 мес)',
-                        'Норма 88% (3 мес)', 'Обработанные заявки / Норма', 'Обработка не позднее 48 часов (3 мес)',
-                        'Норма 85% (3 мес)', '48 часов / Норма', 'Полнота сбора (3 мес)', 'Норма 95% (3 мес)',
-                        'Полнота сбора / Норма', 'Встречи (3 мес)', 'Встречи / Норма']
-
-
-def preprocess_skills(skills: dict) -> pd.DataFrame:
-    assert len(skills.keys()) >= 3, 'Переданы данные по навыкам менее чем за квартал'
+    :return: pd.DataFrame
+    """
 
     # Переносим данные по месячным скилам в один дата-фрейм
-    df_list = []
-    for key in list(skills.keys())[-3:]:
-        month_df = skills[key]
-        month_df['Дата'] = key[3:10]
-        df_list.append(month_df)
-    skills_per_month = pd.concat(df_list, axis=0)
-    skills_per_month.columns = skills_columns
-    skills_per_month.drop('N', axis=1, inplace=True)
-    skills_per_month.reset_index(drop=True, inplace=True)
+    month_kpi_skills.columns = month_skills_columns
+    quarter_kpi_skills.columns = quarter_skills_columns
 
-    ved_list = skills_per_month['ВЭД'].unique()
-    df_list = []
+    assert sorted(month_kpi_skills['ВЭД'].unique()) == sorted(quarter_kpi_skills['ВЭД'].unique()), 'В таблицах KPI за месяц из за квартал содержатся разные ВЭД'
 
-    # Проходим по всем ВЭД
-    for i, ved in enumerate(ved_list):
-        ved_skills = skills_per_month[skills_per_month['ВЭД'] == ved].copy()  # Делаем срез по данному ВЭД
-        ved_skills.reset_index(drop=True, inplace=True)
+    kpi_skills = month_kpi_skills.merge(quarter_kpi_skills, on='ВЭД', how='inner')
 
-        # Генерим для ВЭД новые признаки
-        for column in columns_to_prepare:
-            ved_skills[column] = ved_skills[column].astype(str).str.replace(',', '').astype('float')
+    # Считаем отношения между результатами за 3 мес и нормами
+    kpi_skills['Звонки / Норма'] = kpi_skills['Звонки (3 мес)'] / kpi_skills['Звонки норма (3 мес)']
+    kpi_skills['Обработанные заявки / Норма'] = kpi_skills['Обработанные заявки (3 мес)'] / kpi_skills['Норма 88% (3 мес)']
+    kpi_skills['48 часов / Норма'] = kpi_skills['Обработка не позднее 48 часов (3 мес)'] / kpi_skills['Норма 85% (3 мес)']
+    kpi_skills['Полнота сбора / Норма'] = kpi_skills['Полнота сбора (3 мес)'] / kpi_skills['Норма 95% (3 мес)']
+    kpi_skills['Встречи / Норма'] = kpi_skills['Встречи (3 мес)'] / kpi_skills['Встречи норма (3 мес)']
+    kpi_skills.fillna(0.0, inplace=True)  # Заполняем NaN там, где возникло деление на 0
 
-            # Новый столбец (будут собраны данные за прошедшие 3 мес)
-            new_column = column + ' (3 мес)'
+    kpi_skills.drop(['Звонки норма', 'Встречи норма', 'Звонки норма (3 мес)', 'Встречи норма (3 мес)'], axis=1, inplace=True)
+    kpi_skills = kpi_skills.reindex(columns=skills_final_columns)
 
-            # По каждой колонке суммируем результаты за 3 мес
-            ved_skills[new_column] = ved_skills[column].rolling(3, min_periods=1).sum()
-        ved_skills_per_quarter = ved_skills.iloc[-1].copy()
-
-        # Считаем отношения между результатами за 3 мес и нормами
-        ved_skills_per_quarter['Звонки / Норма'] = ved_skills_per_quarter['Звонки (3 мес)'] / ved_skills_per_quarter[
-            'Звонки норма (3 мес)']
-        ved_skills_per_quarter['Обработанные заявки / Норма'] = ved_skills_per_quarter['Обработанные заявки (3 мес)'] / \
-                                                                ved_skills_per_quarter['Норма 88% (3 мес)']
-        ved_skills_per_quarter['48 часов / Норма'] = ved_skills_per_quarter['Обработка не позднее 48 часов (3 мес)'] / \
-                                                     ved_skills_per_quarter['Норма 85% (3 мес)']
-        ved_skills_per_quarter['Полнота сбора / Норма'] = ved_skills_per_quarter['Полнота сбора (3 мес)'] / \
-                                                          ved_skills_per_quarter['Норма 95% (3 мес)']
-        ved_skills_per_quarter['Встречи / Норма'] = ved_skills_per_quarter['Встречи (3 мес)'] / ved_skills_per_quarter[
-            'Встречи норма (3 мес)']
-        ved_skills_per_quarter.fillna(0.0, inplace=True)  # Заполняем NaN там, где возникло деление на 0
-        df_list.append(ved_skills_per_quarter)
-
-    # Формируем дата-фрейм по всем сотрудникам
-    skills_per_quarter = pd.DataFrame(df_list)
-
-    # Удаляем ВЭД с нулями по всем скилам
-    skills_per_quarter = skills_per_quarter[skills_per_quarter[columns_to_check].sum(axis=1) != 0]
-
-    skills_per_quarter.reset_index(drop=True, inplace=True)
-    skills_per_quarter.drop(['Звонки норма', 'Встречи норма', 'Звонки норма (3 мес)', 'Встречи норма (3 мес)'], axis=1,
-                            inplace=True)
-    skills_per_quarter = skills_per_quarter.reindex(columns=skills_final_columns)
-
-    return skills_per_quarter
-
-
-# 4. Concatenate pd.concat([all_bp, time_process, skills])
+    return kpi_skills
 
 
 def to_ohe(feature, d):
+    """
+    Функция кодирования категориальных признаков в вектор OHE
+
+    :param feature: кодируемый признак
+    :param d:       словарь для кодирования признаков
+
+    :return: vector: вектор OHE
+    """
     vector = [0] * len(d)
     if feature in d:
         vector[d[feature]] = 1
@@ -186,6 +143,14 @@ def to_ohe(feature, d):
 
 
 def to_bow(feature, d):
+    """
+    Функция кодирования категориальных признаков в вектор BoW
+
+    :param feature: кодируемый признак
+    :param d:       словарь для кодирования признаков
+
+    :return: vector: вектор BoW
+    """
     vector = [0] * len(d)
     values = feature.split('__')
     for value in values:
@@ -196,51 +161,90 @@ def to_bow(feature, d):
     return vector
 
 
-def prepare_cat_features(data):
+def prepare_cat_features(data: pd.DataFrame) -> np.array:
+    """
+    Функция преобразования категориальных признаков.
+    Принимает на вход DataFrame с данными по заказам.
+    Возвращает numpy-массив с преобразованными признаками заказов
+
+    :param data: pd.DataFrame
+
+    :return: np.array
+    """
     x_cat = []
     for row in np.array(data):
         prepared_row = []
-        prepared_row += to_ohe(row[2], partner_dict)
-        prepared_row += to_ohe(row[3], manager_dict)
-        prepared_row += to_bow(row[4], position_dict)
+        prepared_row += to_bow(str(row[2]), week_dict)
+        prepared_row += to_ohe(row[3], partner_dict)
+        prepared_row += to_ohe(row[4], manager_dict)
+        prepared_row += to_bow(row[5], position_dict)
         x_cat.append(prepared_row)
-    x_cat = np.array(x_cat, dtype=np.float)
+    x_cat = np.array(x_cat, dtype=np.float64)
     return x_cat
 
 
-def preprocess_data(bp_data, skills_data, time_data):
+def preprocess_data(bp_data, month_kpi_skills, quarter_kpi_skills, positions_skills):
+    """
+    Функция предобработки входных данных.
+    Принимает на вход четыре DataFrame:
+    - описание заказа/заказов
+    - месячные данные по KPI
+    - квартальные данные по KPI
+    - исторические данные по работе каждого ВЭД с различными номенклатурами
+    Возвращает:
+    - преобразованные данные
+    - список бизнес-процессов
+    - список анализируемых сотрудников ВЭД (на основании таблицы с данными KPI)
+
+    :param bp_data: pd.DataFrame
+    :param month_kpi_skills: pd.DataFrame
+    :param quarter_kpi_skills: pd.DataFrame
+    :param positions_skills: pd.DataFrame
+
+    :return:
+    prepared_data: np.array
+    bp_id_list: list
+    ved_list: list
+    """
+
+    # Преобразуем данные по заказам
     bp_data_unique = preprocess_bp(bp_data.copy())
-    bp_id_list = bp_data_unique['Бизнес процесс'].to_list()
+
+    # Преобразум категориальные признаки по заказам
     bp_cat_features = prepare_cat_features(bp_data_unique)
 
-    skills_per_quarter = preprocess_skills(skills_data.copy())
-    median_time = preprocess_time(time_data.copy())
+    # Преобразуем данные по KPI
+    kpi_skills = preprocess_skills(month_kpi_skills.copy(), quarter_kpi_skills.copy())
 
-    skills_time = skills_per_quarter.merge(median_time, on=["ВЭД", "Дата"], how='inner')
-    ved_list = skills_time['ВЭД'].to_list()
+    # Объединяем данные по KPI и исторические данные по работе ВЭД с номенклатурами
+    # По ВЭД, которого нет в таблице с историческими данными, его навыки по номенклатурам заполняются нулями
+    skills = kpi_skills.merge(positions_skills, on='ВЭД', how='left')
+    skills.drop(['Год', 'Месяц'], axis=1, inplace=True)
+    skills.fillna(0.0, inplace=True)
 
-    num_features = scaler.transform(skills_time.iloc[:, 2:])
+    # Преобразуем числовые признаки в характеристиках ВЭД
+    num_features = scaler.transform(skills.iloc[:, 1:])
 
+    # Объединяем все заказы со всеми ВЭД
     prepared_data = []
     for bp in bp_cat_features:
-        prepared_data.append(np.hstack((num_features, bp.reshape((1,-1)).repeat(skills_time.shape[0], axis=0))))
+        prepared_data.append(np.hstack((num_features, bp.reshape((1, -1)).repeat(skills.shape[0], axis=0))))
     prepared_data = np.asarray(prepared_data)
 
-    return prepared_data, bp_id_list, ved_list
+    bp_id_list = bp_data_unique['Бизнес процесс'].to_list()
+    ved_list = skills['ВЭД'].to_list()
 
-# 6. Making Json into variable --> results TODO
+    return prepared_data, bp_id_list, ved_list
 
 
 if __name__ == '__main__':
     test_data_path = os.path.join(data_path, 'ved_test.xlsx')
-    skills_path = os.path.join(data_path, 'ved_bp_skills_3.xlsx')
-    time_path = os.path.join(data_path, 'ved_bp_processing_time.csv')
 
-    test_data = pd.read_excel(test_data_path, sheet_name=None, header=0)
-    skills = pd.read_excel(skills_path, sheet_name=None, header=[1])
-    time = pd.read_csv(time_path)
+    test_bp = pd.read_excel(test_data_path, sheet_name='БП ', header=0)
+    month_kpi_skills = pd.read_excel(test_data_path, sheet_name='Характеристика ВЭД', header=1)
+    quarter_kpi_skills = pd.read_excel(test_data_path, sheet_name='Характеристика ВЭД', header=1)
+    positions_skills = pd.read_csv(os.path.join(data_path, "latest_positions_skills.csv"))
 
-    test_bp = test_data['БП ']
     test_bp.drop('Ответственный', inplace=True, axis=1)
     orders = ['Бизнес-процесс 00-058355 от 09.12.2021 14:28:22',
               'Бизнес-процесс 00-059676 от 03.01.2022 10:28:19']
@@ -250,10 +254,13 @@ if __name__ == '__main__':
 
     test_examples = pd.concat(test_examples)
     test_examples.reset_index(drop=True, inplace=True)
+    test_examples['Партнер клиента'] = 'Неизвестен'
+    test_examples['Менеджер'] = 'Неизвестен'
 
-    prepared_data, bp_id_list, ved_list = preprocess_data(test_examples.copy(),
-                                                          skills.copy(),
-                                                          time.copy())
+    prepared_data, bp_id_list, ved_list = preprocess_data(test_examples,
+                                                          month_kpi_skills,
+                                                          quarter_kpi_skills,
+                                                          positions_skills)
 
     print(prepared_data.shape)
     print(bp_id_list)
