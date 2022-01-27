@@ -1,7 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 import pandas as pd
 import os
-from waitress import serve
 from prediction import predict
 from preprocessing import preprocess_data
 
@@ -55,5 +54,4 @@ def get_ved():
 
 
 if __name__ == "__main__":
-    # app.run(debug=True)
-    serve(app, host="0.0.0.0", port=8080)
+    serve(app, host="0.0.0.0", port=8080, url_scheme='https')

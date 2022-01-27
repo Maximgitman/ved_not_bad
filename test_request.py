@@ -3,7 +3,7 @@ import json
 import requests
 import os
 
-SERVER = 'http://0.0.0.0:8080'
+SERVER = 'https://3c03-88-99-100-186.ngrok.io'
 headers = {'Content-Type': 'application/json'}
 data_path = "static/data"
 
