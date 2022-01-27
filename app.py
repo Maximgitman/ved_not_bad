@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 import pandas as pd
+import json
 import os
 
 from waitress import serve
@@ -34,6 +35,9 @@ def after_request(response):
 def get_ved():
     if request.method == "POST":
         data = request.get_json(force=True)
+        if type(data) == str:
+            data = json.loads(data)
+
         all_bp = pd.DataFrame(data)
         test_data_path = os.path.join(data_path, 'ved_test.xlsx')
 
@@ -50,11 +54,10 @@ def get_ved():
         input_size = prepared_data.shape[2]
 
         result = predict(prepared_data, bp_id_list, ved_list, input_size)
-
         return jsonify(result)
     else:
         return render_template("index.html")
 
 
 if __name__ == "__main__":
-    serve(app, host="0.0.0.0", port=8080, url_scheme='https')
+    serve(app, host="0.0.0.0", port=8080)

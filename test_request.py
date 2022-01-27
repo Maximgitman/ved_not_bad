@@ -1,33 +1,15 @@
-import pandas as pd
 import json
 import requests
-import os
 
-SERVER = 'https://3c03-88-99-100-186.ngrok.io'
+
+SERVER = 'http://0.0.0.0:8080'
 headers = {'Content-Type': 'application/json'}
-data_path = "static/data"
 
-test_data_path = os.path.join(data_path, 'ved_test.xlsx')
-test_bp = pd.read_excel(test_data_path, sheet_name='БП ', header=0)
-
-test_bp.drop('Ответственный', inplace=True, axis=1)
-orders = ['Бизнес-процесс 00-058355 от 09.12.2021 14:28:22']
-
-test_examples = []
-for order in orders:
-    test_examples.append(test_bp[test_bp['Бизнес процесс'] == order])
-
-test_examples = pd.concat(test_examples)
-test_examples.reset_index(drop=True, inplace=True)
-test_examples['Партнер клиента'] = 'Неизвестен'
-test_examples['Менеджер'] = 'Неизвестен'
-
-bp_dict = test_examples.to_dict()
-data = json.dumps(bp_dict, indent=4)
-
+with open('for_test.json') as f:
+    data = json.loads(f.read())
+print(data)
+print(type(data))
 result = requests.post(SERVER,
                        headers=headers,
                        data=data)
-
-print(result.status_code)
 print(result.json())
