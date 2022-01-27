@@ -1,6 +1,9 @@
 from flask import Flask, request, jsonify, render_template
 import pandas as pd
 import os
+
+from waitress import serve
+
 from prediction import predict
 from preprocessing import preprocess_data
 
