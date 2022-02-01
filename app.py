@@ -39,10 +39,12 @@ def get_ved():
             data = json.loads(data)
 
         all_bp = pd.DataFrame(data)
-        test_data_path = os.path.join(data_path, 'ved_test.xlsx')
 
-        month_kpi_skills = pd.read_excel(test_data_path, sheet_name='Характеристика ВЭД', header=1)
-        quarter_kpi_skills = pd.read_excel(test_data_path, sheet_name='Характеристика ВЭД', header=1)
+        month_kpi_skills = pd.read_excel(os.path.join(data_path, 'month_kpi_skills.xlsx'),
+                                         sheet_name='Характеристика ВЭД', header=1)
+        quarter_kpi_skills = pd.read_excel(os.path.join(data_path, 'quarter_kpi_skills.xlsx'),
+                                           sheet_name='Характеристика ВЭД', header=1)
+
         positions_skills = pd.read_csv(os.path.join(data_path, "latest_positions_skills.csv"))
 
         prepared_data, bp_id_list, ved_list = preprocess_data(all_bp,
