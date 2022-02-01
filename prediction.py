@@ -76,11 +76,12 @@ if __name__ == '__main__':
     from preprocessing import preprocess_data
 
     data_path = "static/data"
-    test_data_path = os.path.join(data_path, 'ved_test.xlsx')
 
-    test_bp = pd.read_excel(test_data_path, sheet_name='БП ', header=0)
-    month_kpi_skills = pd.read_excel(test_data_path, sheet_name='Характеристика ВЭД', header=1)
-    quarter_kpi_skills = pd.read_excel(test_data_path, sheet_name='Характеристика ВЭД', header=1)
+    test_bp = pd.read_excel(os.path.join(data_path, 'ved_test.xlsx'), sheet_name='БП ', header=0)
+    month_kpi_skills = pd.read_excel(os.path.join(data_path, 'month_kpi_skills.xlsx'),
+                                     sheet_name='Характеристика ВЭД', header=1)
+    quarter_kpi_skills = pd.read_excel(os.path.join(data_path, 'quarter_kpi_skills.xlsx'),
+                                       sheet_name='Характеристика ВЭД', header=1)
     positions_skills = pd.read_csv(os.path.join(data_path, "latest_positions_skills.csv"))
 
     test_bp.drop('Ответственный', inplace=True, axis=1)
