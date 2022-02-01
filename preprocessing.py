@@ -13,8 +13,11 @@ scaler = joblib.load(os.path.join(data_path, 'scaler_state.joblib'))
 with open(os.path.join(data_path, 'partner_dict.json'), 'r') as f:
     partner_dict = json.load(f)
 
-with open(os.path.join(data_path, 'position_dict.json'), 'r') as f:
-    position_dict = json.load(f)
+with open(os.path.join(data_path, 'position_low_dict.json'), 'r') as f:
+    position_low_dict = json.load(f)
+
+with open(os.path.join(data_path, 'position_high_dict.json'), 'r') as f:
+    position_high_dict = json.load(f)
 
 with open(os.path.join(data_path, 'manager_dict.json'), 'r') as f:
     manager_dict = json.load(f)
@@ -56,7 +59,8 @@ def preprocess_bp(bp_data: pd.DataFrame) -> pd.DataFrame:
     bp_data['Бизнес процесс'] = bp_data['Бизнес процесс'].astype('str')
 
     # Заполнение пропущенных значений в номенклатурах
-    bp_data['Группа видов номенклатуры'].fillna('Временная', inplace=True)
+    bp_data['Группа видов номенклатуры'].fillna('UNK', inplace=True)
+    bp_data['Вид номенклатуры'].fillna('UNK', inplace=True)
 
     # Извлечение id и даты БП
     order_id = []
@@ -75,15 +79,18 @@ def preprocess_bp(bp_data: pd.DataFrame) -> pd.DataFrame:
     unique_bp = []
     for bp in bp_unique:
         bp_data_slice = bp_data[bp_data['Бизнес процесс'] == bp]
-        positions = '__'.join(bp_data_slice['Группа видов номенклатуры'].unique())
+        positions_groups = '__'.join(bp_data_slice['Группа видов номенклатуры'].unique())
+        positions_species = '__'.join(bp_data_slice['Вид номенклатуры'].unique())
         new_line = bp_data_slice.iloc[0].copy()
-        new_line['Группа видов номенклатуры'] = positions
+        new_line['Группа видов номенклатуры'] = positions_groups
+        new_line['Вид номенклатуры'] = positions_species
         unique_bp.append(new_line)
 
     bp_data_unique = pd.DataFrame(unique_bp, columns=bp_data.columns)
     bp_data_unique.reset_index(drop=True, inplace=True)
 
-    columns = ['Бизнес процесс', 'Дата', 'Неделя', 'Партнер клиента', 'Менеджер', 'Группа видов номенклатуры']
+    columns = ['Бизнес процесс', 'Дата', 'Неделя', 'Партнер клиента', 'Менеджер', 'Группа видов номенклатуры',
+               'Вид номенклатуры']
     bp_data_unique = bp_data_unique.reindex(columns=columns)
 
     return bp_data_unique
@@ -177,9 +184,10 @@ def prepare_cat_features(data: pd.DataFrame) -> np.array:
         prepared_row += to_bow(str(row[2]), week_dict)
         prepared_row += to_ohe(row[3], partner_dict)
         prepared_row += to_ohe(row[4], manager_dict)
-        prepared_row += to_bow(row[5], position_dict)
+        prepared_row += to_bow(row[5], position_low_dict)
+        prepared_row += to_bow(row[6], position_high_dict)
         x_cat.append(prepared_row)
-    x_cat = np.array(x_cat, dtype=np.float64)
+    x_cat = np.array(x_cat, dtype=np.float32)
     return x_cat
 
 
@@ -246,14 +254,15 @@ if __name__ == '__main__':
     positions_skills = pd.read_csv(os.path.join(data_path, "latest_positions_skills.csv"))
 
     test_bp.drop('Ответственный', inplace=True, axis=1)
-    orders = ['Бизнес-процесс 00-058355 от 09.12.2021 14:28:22',
-              'Бизнес-процесс 00-059676 от 03.01.2022 10:28:19']
+    orders = ['Бизнес-процесс 00-058355 от 09.12.2021 14:28:22']
+
     test_examples = []
     for order in orders:
         test_examples.append(test_bp[test_bp['Бизнес процесс'] == order])
 
     test_examples = pd.concat(test_examples)
     test_examples.reset_index(drop=True, inplace=True)
+    test_examples['Вид номенклатуры'] = 'Неизвестен'
     test_examples['Партнер клиента'] = 'Неизвестен'
     test_examples['Менеджер'] = 'Неизвестен'
 

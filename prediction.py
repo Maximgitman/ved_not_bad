@@ -84,14 +84,15 @@ if __name__ == '__main__':
     positions_skills = pd.read_csv(os.path.join(data_path, "latest_positions_skills.csv"))
 
     test_bp.drop('Ответственный', inplace=True, axis=1)
-    orders = ['Бизнес-процесс 00-058355 от 09.12.2021 14:28:22',
-              'Бизнес-процесс 00-059676 от 03.01.2022 10:28:19']
+    orders = ['Бизнес-процесс 00-058355 от 09.12.2021 14:28:22']
+
     test_examples = []
     for order in orders:
         test_examples.append(test_bp[test_bp['Бизнес процесс'] == order])
 
     test_examples = pd.concat(test_examples)
     test_examples.reset_index(drop=True, inplace=True)
+    test_examples['Вид номенклатуры'] = 'Неизвестен'
     test_examples['Партнер клиента'] = 'Неизвестен'
     test_examples['Менеджер'] = 'Неизвестен'
 
