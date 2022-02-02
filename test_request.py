@@ -2,7 +2,7 @@ import json
 import requests
 
 
-SERVER = 'http://0.0.0.0:8080'
+SERVER = 'http://127.0.0.1:8000'
 headers = {'Content-Type': 'application/json'}
 
 with open('static/data/for_test.json') as f:
