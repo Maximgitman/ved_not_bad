@@ -110,6 +110,9 @@ def preprocess_skills(month_kpi_skills: pd.DataFrame, quarter_kpi_skills: pd.Dat
     :return: pd.DataFrame
     """
 
+    month_kpi_skills.fillna(0, inplace=True)
+    quarter_kpi_skills.fillna(0, inplace=True)
+
     # Переносим данные по месячным скилам в один дата-фрейм
     month_kpi_skills.columns = month_skills_columns
     quarter_kpi_skills.columns = quarter_skills_columns
