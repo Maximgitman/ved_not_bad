@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify, render_template
+import xlrd
 import pandas as pd
 import json
 import os
@@ -40,9 +41,11 @@ def get_ved():
 
         all_bp = pd.DataFrame(data)
 
-        month_kpi_skills = pd.read_excel(os.path.join(data_path, 'month_kpi_skills.xlsx'),
+        month_kpi_skills_excel = xlrd.open_workbook(os.path.join(data_path, 'month_kpi_skills.xlsx'))
+        month_kpi_skills = pd.read_excel(month_kpi_skills_excel,
                                          sheet_name='Характеристика ВЭД', header=1)
-        quarter_kpi_skills = pd.read_excel(os.path.join(data_path, 'quarter_kpi_skills.xlsx'),
+        quarter_kpi_skills_excel = xlrd.open_workbook(os.path.join(data_path, 'quarter_kpi_skills.xlsx'))
+        quarter_kpi_skills = pd.read_excel(quarter_kpi_skills_excel,
                                            sheet_name='Характеристика ВЭД', header=1)
 
         positions_skills = pd.read_csv(os.path.join(data_path, "latest_positions_skills.csv"))

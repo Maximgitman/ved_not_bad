@@ -4,6 +4,7 @@ import joblib
 
 import numpy as np
 import pandas as pd
+import xlrd
 
 
 data_path = "static/data"
@@ -252,9 +253,11 @@ if __name__ == '__main__':
     test_data_path = os.path.join(data_path, 'ved_test.xlsx')
 
     test_bp = pd.read_excel(os.path.join(data_path, 'ved_test.xlsx'), sheet_name='БП ', header=0)
-    month_kpi_skills = pd.read_excel(os.path.join(data_path, 'month_kpi_skills.xlsx'),
+    month_kpi_skills_excel = xlrd.open_workbook(os.path.join(data_path, 'month_kpi_skills.xlsx'))
+    month_kpi_skills = pd.read_excel(month_kpi_skills_excel,
                                      sheet_name='Характеристика ВЭД', header=1)
-    quarter_kpi_skills = pd.read_excel(os.path.join(data_path, 'quarter_kpi_skills.xlsx'),
+    quarter_kpi_skills_excel = xlrd.open_workbook(os.path.join(data_path, 'quarter_kpi_skills.xlsx'))
+    quarter_kpi_skills = pd.read_excel(quarter_kpi_skills_excel,
                                        sheet_name='Характеристика ВЭД', header=1)
     positions_skills = pd.read_csv(os.path.join(data_path, "latest_positions_skills.csv"))
 

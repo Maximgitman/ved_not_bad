@@ -73,14 +73,17 @@ def predict(data: np.array, bp_id_list: list, ved_list: list, input_size: int) -
 if __name__ == '__main__':
     import os
     import pandas as pd
+    import xlrd
     from preprocessing import preprocess_data
 
     data_path = "static/data"
 
     test_bp = pd.read_excel(os.path.join(data_path, 'ved_test.xlsx'), sheet_name='БП ', header=0)
-    month_kpi_skills = pd.read_excel(os.path.join(data_path, 'month_kpi_skills.xlsx'),
+    month_kpi_skills_excel = xlrd.open_workbook(os.path.join(data_path, 'month_kpi_skills.xlsx'))
+    month_kpi_skills = pd.read_excel(month_kpi_skills_excel,
                                      sheet_name='Характеристика ВЭД', header=1)
-    quarter_kpi_skills = pd.read_excel(os.path.join(data_path, 'quarter_kpi_skills.xlsx'),
+    quarter_kpi_skills_excel = xlrd.open_workbook(os.path.join(data_path, 'quarter_kpi_skills.xlsx'))
+    quarter_kpi_skills = pd.read_excel(quarter_kpi_skills_excel,
                                        sheet_name='Характеристика ВЭД', header=1)
     positions_skills = pd.read_csv(os.path.join(data_path, "latest_positions_skills.csv"))
 
